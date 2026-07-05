@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>CATアンケート</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', sans-serif;
+    background: #f5f5f7;
+    color: #1a1a1a;
+    min-height: 100vh;
+  }
+
+  .header {
+    background: #0F6E56;
+    color: #fff;
+    padding: 16px 20px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .header h1 { font-size: 17px; font-weight: 600; margin-bottom: 2px; }
+  .header p { font-size: 12px; opacity: 0.85; }
+  .prog-wrap { background: rgba(255,255,255,0.3); height: 4px; border-radius: 99px; margin-top: 10px; }
+  .prog-fill { height: 100%; background: #fff; border-radius: 99px; transition: width 0.3s; width: 0%; }
+
+  .container { padding: 16px; }
+
+  .q-card {
+    background: #fff;
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 14px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  }
+  .q-tag {
+    display: inline-block;
+    background: #E1F5EE;
+    color: #0F6E56;
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: 6px;
+    padding: 3px 9px;
+    margin-bottom: 10px;
+  }
+
+  /* 左右ラベル + ボタン行 */
+  .scale-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .scale-left {
+    font-size: 11px;
+    color: #636366;
+    line-height: 1.4;
+    text-align: right;
+    flex: 1;
+    min-width: 0;
+  }
+  .scale-right {
+    font-size: 11px;
+    color: #636366;
+    line-height: 1.4;
+    text-align: left;
+    flex: 1;
+    min-width: 0;
+  }
+  .scale-btns {
+    display: flex;
+    gap: 5px;
+    flex-shrink: 0;
+  }
+  .sc-btn {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    border: 1.5px solid #e5e5ea;
+    background: #fff;
+    color: #1a1a1a;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .sc-btn.selected {
+    background: #0F6E56;
+    border-color: #0F6E56;
+    color: #fff;
+  }
+  .sc-btn:active { transform: scale(0.93); }
+
+  .submit-wrap { padding: 8px 16px 32px; }
+  .btn-submit {
+    width: 100%;
+    background: #0F6E56;
+    color: #fff;
+    border: none;
+    border-radius: 14px;
+    padding: 16px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .btn-submit:active { opacity: 0.85; }
+  .btn-submit:disabled { background: #c7c7cc; cursor: not-allowed; }
+
+  /* 結果画面 */
+  #page-result { display: none; }
+  .result-header {
+    background: #0F6E56;
+    color: #fff;
+    padding: 20px;
+    text-align: center;
+  }
+  .result-header h2 { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+  .result-header p { font-size: 13px; opacity: 0.85; }
+
+  .score-area {
+    background: #fff;
+    margin: 16px;
+    border-radius: 14px;
+    padding: 20px;
+    text-align: center;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  }
+  .score-big { font-size: 56px; font-weight: 700; color: #0F6E56; line-height: 1; }
+  .score-max { font-size: 16px; color: #8e8e93; margin-top: 4px; }
+  .score-badge {
+    display: inline-block;
+    margin-top: 12px;
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: 8px;
+    padding: 6px 16px;
+  }
+
+  .answer-summary {
+    margin: 0 16px 16px;
+    background: #fff;
+    border-radius: 14px;
+    padding: 16px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  }
+  .answer-summary h3 { font-size: 14px; font-weight: 600; margin-bottom: 10px; }
+  .ans-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    padding: 6px 0;
+    border-bottom: 1px solid #f2f2f7;
+  }
+  .ans-row:last-child { border-bottom: none; }
+  .ans-key { color: #636366; }
+  .ans-val { font-weight: 500; color: #0F6E56; }
+
+  .bc-area {
+    background: #fff;
+    margin: 0 16px 16px;
+    border-radius: 14px;
+    padding: 20px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  }
+  .bc-area h3 { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+  .bc-area p { font-size: 12px; color: #8e8e93; margin-bottom: 14px; }
+  #bc-canvas { display: block; width: 100%; height: auto; border-radius: 8px; border: 1px solid #e5e5ea; }
+  .data-str {
+    font-size: 11px;
+    font-family: monospace;
+    background: #f5f5f7;
+    border-radius: 8px;
+    padding: 10px;
+    word-break: break-all;
+    color: #636366;
+    margin-top: 12px;
+  }
+
+  .btn-row { display: flex; gap: 10px; padding: 0 16px 32px; }
+  .btn-reset {
+    flex: 1;
+    background: #f5f5f7;
+    color: #0F6E56;
+    border: none;
+    border-radius: 14px;
+    padding: 14px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .btn-menu {
+    flex: 1;
+    background: #0F6E56;
+    color: #fff;
+    border: none;
+    border-radius: 14px;
+    padding: 14px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+</style>
+</head>
+<body>
+
+<!-- アンケート画面 -->
+<div id="page-survey">
+  <div class="header">
+    <h1>CAT（COPD アセスメントテスト）</h1>
+    <p>あなたの今の状態を0〜5で選んでください</p>
+    <div class="prog-wrap"><div class="prog-fill" id="progress"></div></div>
+  </div>
+  <div class="container" id="questions-container"></div>
+  <div class="submit-wrap">
+    <button class="btn-submit" id="btn-submit" onclick="submitSurvey()" disabled>回答を確定する</button>
+  </div>
+</div>
+
+<!-- 結果画面 -->
+<div id="page-result">
+  <div class="result-header">
+    <h2>回答結果</h2>
+    <p>バーコードリーダーでスキャンしてください</p>
+  </div>
+  <div class="score-area">
+    <div class="score-big" id="score-num">--</div>
+    <div class="score-max">/ 40点</div>
+    <div class="score-badge" id="score-badge"></div>
+  </div>
+  <div class="answer-summary">
+    <h3>回答内容</h3>
+    <div id="answer-rows"></div>
+  </div>
+  <div class="bc-area">
+    <h3>一次元バーコード（Code 128）</h3>
+    <p>バーコードリーダーをこの画面にかざしてください</p>
+    <canvas id="bc-canvas" height="110"></canvas>
+    <div class="data-str" id="data-str"></div>
+  </div>
+  <div class="btn-row">
+    <button class="btn-reset" onclick="resetSurvey()">もう一度回答する</button>
+    <a class="btn-menu" href="index.html">メニューへ戻る</a>
+  </div>
+</div>
+
+<script>
+const QS = [
+  { key:'A', left:'全く咳がでない', right:'いつも咳が出ている' },
+  { key:'B', left:'全く痰が詰まった感じがしない', right:'いつも痰が詰まっている感じがする' },
+  { key:'C', left:'全く息苦しくない', right:'非常に息苦しい' },
+  { key:'D', left:'坂や階段を上っても息切れがしない', right:'坂や階段を上ると非常に息切れがする' },
+  { key:'E', left:'家での普段の生活が制限されることはない', right:'家での普段の生活が非常に制限される' },
+  { key:'F', left:'肺の状態を気にせずに外出できる', right:'肺の状態が気になって外出できない' },
+  { key:'G', left:'よく眠れる', right:'肺の状態が気になってよく眠れない' },
+  { key:'H', left:'とても元気だ', right:'全く元気がない' }
+];
+
+const container = document.getElementById('questions-container');
+
+QS.forEach(q => {
+  const card = document.createElement('div');
+  card.className = 'q-card';
+
+  const tag = document.createElement('div');
+  tag.className = 'q-tag';
+  tag.textContent = '設問 ' + q.key;
+  card.appendChild(tag);
+
+  const scaleWrap = document.createElement('div');
+  scaleWrap.className = 'scale-wrap';
+
+  const leftLabel = document.createElement('div');
+  leftLabel.className = 'scale-left';
+  leftLabel.textContent = q.left;
+
+  const btnsWrap = document.createElement('div');
+  btnsWrap.className = 'scale-btns';
+
+  for (let i = 0; i <= 5; i++) {
+    const btn = document.createElement('button');
+    btn.className = 'sc-btn';
+    btn.textContent = i;
+    btn.setAttribute('data-key', q.key);
+    btn.setAttribute('data-val', i);
+    btn.onclick = function() {
+      document.querySelectorAll(`.sc-btn[data-key="${q.key}"]`).forEach(b => b.classList.remove('selected'));
+      this.classList.add('selected');
+      updateProgress();
+    };
+    btnsWrap.appendChild(btn);
+  }
+
+  const rightLabel = document.createElement('div');
+  rightLabel.className = 'scale-right';
+  rightLabel.textContent = q.right;
+
+  scaleWrap.appendChild(leftLabel);
+  scaleWrap.appendChild(btnsWrap);
+  scaleWrap.appendChild(rightLabel);
+  card.appendChild(scaleWrap);
+  container.appendChild(card);
+});
+
+function updateProgress() {
+  const answered = QS.filter(q => document.querySelector(`.sc-btn[data-key="${q.key}"].selected`)).length;
+  document.getElementById('progress').style.width = (answered / QS.length * 100) + '%';
+  document.getElementById('btn-submit').disabled = answered < QS.length;
+}
+
+// Code 128B
+const C128P = [
+  '11011001100','11001101100','11001100110','10010011000','10010001100',
+  '10001001100','10011001000','10011000100','10001100100','11001001000',
+  '11001000100','11000100100','10110011100','10011011100','10011001110',
+  '10111001100','10011101100','10011100110','11001110010','11001011100',
+  '11001001110','11011100100','11001110100','11101101110','11101001100',
+  '11100101100','11100100110','11101100100','11100110100','11100110010',
+  '11011011000','11011000110','11000110110','10100011000','10001011000',
+  '10001000110','10110001000','10001101000','10001100010','11010001000',
+  '11000101000','11000100010','10110111000','10110001110','10001101110',
+  '10111011000','10111000110','10001110110','11101110110','11010001110',
+  '11000101110','11011101000','11011100010','11011101110','11101011000',
+  '11101000110','11100010110','11011010000','11011001010','11011110010',
+  '11011110100','11001010000','11110111010','11000010100','10001111010',
+  '10100111100','10010111100','10010011110','10111100100','10011110100',
+  '10011110010','11110100100','11110010100','11110010010','11011011110',
+  '11011110110','11110110110','10101111000','10100011110','10001011110',
+  '10111101000','10111100010','11110101000','11110100010','10111011110',
+  '10111101110','11101011110','11110101110',
+  '11010000100','11010010000','11010011100',
+  '1100011101011'
+];
+
+function code128Encode(str) {
+  const START = 104; let cs = START; const vals = [START];
+  for (let i = 0; i < str.length; i++) {
+    const c = str.charCodeAt(i); if (c < 32 || c > 126) continue;
+    const v = c - 32; vals.push(v); cs += (i + 1) * v;
+  }
+  vals.push(cs % 103); vals.push(106); return vals;
+}
+
+function drawBarcode(canvas, text) {
+  const vals = code128Encode(text);
+  let bars = ''; for (const v of vals) bars += C128P[v];
+  const W = canvas.parentElement.clientWidth - 40 || 300;
+  const H = 110; canvas.height = H;
+  const qz = 12;
+  const bw = Math.max(1, Math.floor((W - qz * 2) / bars.length));
+  canvas.width = bw * bars.length + qz * 2;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, H);
+  let x = qz;
+  const th = 14; const bh = H - th - 6;
+  for (const b of bars) {
+    ctx.fillStyle = b === '1' ? '#000' : '#fff';
+    ctx.fillRect(x, 4, bw, bh); x += bw;
+  }
+  ctx.fillStyle = '#000'; ctx.font = '11px monospace'; ctx.textAlign = 'center';
+  ctx.fillText(text, canvas.width / 2, H - 3);
+}
+
+function submitSurvey() {
+  const scores = QS.map(q => parseInt(document.querySelector(`.sc-btn[data-key="${q.key}"].selected`)?.getAttribute('data-val') || 0));
+  const total = scores.reduce((a, b) => a + b, 0);
+  const ts = new Date().toISOString().slice(2, 16).replace(/[-T:]/g, '');
+  const data = `CAT,${ts},${scores.join('')},${total}`;
+
+  document.getElementById('score-num').textContent = total;
+
+  const badge = document.getElementById('score-badge');
+  if (total <= 9) {
+    badge.textContent = '影響小（9点以下）';
+    badge.style.cssText = 'background:#EAF3DE;color:#3B6D11;';
+  } else if (total <= 19) {
+    badge.textContent = '中程度の影響（10〜19点）';
+    badge.style.cssText = 'background:#FAEEDA;color:#633806;';
+  } else if (total <= 29) {
+    badge.textContent = '大きな影響（20〜29点）';
+    badge.style.cssText = 'background:#FCEBEB;color:#791F1F;';
+  } else {
+    badge.textContent = '非常に大きな影響（30点以上）';
+    badge.style.cssText = 'background:#F7C1C1;color:#501313;';
+  }
+
+  const rows = document.getElementById('answer-rows');
+  rows.innerHTML = '';
+  QS.forEach((q, i) => {
+    const row = document.createElement('div'); row.className = 'ans-row';
+    row.innerHTML = `<span class="ans-key">設問 ${q.key}</span><span class="ans-val">${scores[i]}点　${q.left} ／ ${q.right}</span>`;
+    rows.appendChild(row);
+  });
+
+  document.getElementById('data-str').textContent = data;
+  document.getElementById('page-survey').style.display = 'none';
+  document.getElementById('page-result').style.display = 'block';
+  window.scrollTo(0, 0);
+
+  setTimeout(() => {
+    const canvas = document.getElementById('bc-canvas');
+    drawBarcode(canvas, data);
+  }, 100);
+}
+
+function resetSurvey() {
+  QS.forEach(q => {
+    document.querySelectorAll(`.sc-btn[data-key="${q.key}"]`).forEach(b => b.classList.remove('selected'));
+  });
+  document.getElementById('progress').style.width = '0%';
+  document.getElementById('btn-submit').disabled = true;
+  document.getElementById('page-result').style.display = 'none';
+  document.getElementById('page-survey').style.display = 'block';
+  window.scrollTo(0, 0);
+}
+</script>
+</body>
+</html>
